@@ -28,12 +28,13 @@ class MainWindow(QMainWindow):
         
         
     def login_clicked(self):
+        self.show_message("Al presionar ok empezará la grabación")
         CHUNK = 1024
         FORMAT = pyaudio.paInt16
         CHANNELS = 1 if sys.platform == 'darwin' else 2
         RATE = 44100
         RECORD_SECONDS = 5
-        file_name = 'login_attempt' + self.count + '.wav'
+        file_name = 'login_attempt' + str(self.count) + '.wav'
         self.count += 1
 
         with wave.open(file_name, 'wb') as wf:
@@ -53,6 +54,7 @@ class MainWindow(QMainWindow):
             p.terminate()
 
         self.show_message("Listo")
+
 
     def show_message(self, text: str):
         msg = QMessageBox()
