@@ -8,13 +8,18 @@ from matplotlib import pyplot as plt
 
 # function should return a string that represents the
 # words that it understood
-def recognition(file_name: str) -> str:
-    pass
+# so far this is a pseudo implementation on how the code
+# shoud work
+def recognition(file_name: str, key_file_name: str) -> bool:
+    filtered_attempt = read_wav(file_name)
+    filtered_key = read_wav(key_file_name)
+
+    return filtered_key == filtered_attempt # this is just temporary
 
 
-def test(file_name: str):
+def read_wav(file_name: str):
     sr, data = wavfile.read(file_name)
-    return data, filter(sr, data, 500, 1)
+    return filter(sr, data, 500, 1)
 
 
 def filter(sr: int, data: np.array, cutoff: int, order: int) -> np.array:
@@ -24,8 +29,8 @@ def filter(sr: int, data: np.array, cutoff: int, order: int) -> np.array:
 
 
 def main():
-    _, f = test('login_attempt1.wav')
-    plt.plot(f[1:400], 'b')
+    filtered_data = read_wav('login_attempt1_wav')
+    plt.plot(filtered_data)
     plt.show()
 
 

@@ -2,6 +2,8 @@ import wave
 import pyaudio
 import sys
 import sounddevice
+from recognition import recognition
+from os import path
 from PyQt6.QtGui import *
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
@@ -15,11 +17,14 @@ class MainWindow(QMainWindow):
         layout = QGridLayout(None)
         title = QLabel("Candado por voz")
         
-        login = QPushButton("Acceder")
-        login.clicked.connect(self.login_clicked)
-        
+        self.login = QPushButton("Acceder")
+        self.login.clicked.connect(self.login_clicked)
+        self.set_key = QPushButton("Definir contraseña")
+        self.set_key.clicked.connect(self.key_clicked)
+
         layout.addWidget(title, 0, 0, 1, 2)
-        layout.addWidget(login, 1, 0)
+        layout.addWidget(self.login, 1, 0)
+        layout.addWidget(self.set_key, 1, 1)
         
         self.widget = QWidget()
         self.widget.setLayout(layout)
@@ -27,15 +32,39 @@ class MainWindow(QMainWindow):
         self.count = 1
         
         
-    def login_clicked(self):
-        self.show_message("Al presionar ok empezará la grabación")
+    def login_clicked(self) -> None:
+        self.show_message("Al presionar OK empezará la grabación")
+        file_name = self.record()
+        self.count += 1 
+        self.show_message("Listo")
+        
+        if path.isfile('./key.wav'):
+            if recognition(file_name, 'key.wav'):
+                self.show_message("Contraseña correcta")
+            else:
+                self.show_message(f"Contraseña incorrecta, te quedan {5 - self.count} intentos")
+                if (5 - self.count) == 0:
+                    self.show_message("Deberas esperar treinta segundos despues de presionar Ok para volver a intentarlo")
+                    self.login.setEnabled(False)
+                    QTimer.singleShot(30000, lambda: self.login.setDisabled(False))
+                    self.count = 0
+        else:
+            self.show_message("Por favor establece la contraseña primero")
+    
+
+    def key_clicked(self) -> None:
+        self.show_message("Al presionar OK empezará la grabación")
+        self.record('key')
+        self.show_message("Listo")
+    
+
+    def record(self, name='login_attempt') -> str:
         CHUNK = 1024
         FORMAT = pyaudio.paInt16
         CHANNELS = 1 if sys.platform == 'darwin' else 2
         RATE = 44100
         RECORD_SECONDS = 5
-        file_name = 'login_attempt' + str(self.count) + '.wav'
-        self.count += 1
+        file_name = name + str(self.count) + '.wav' if name == 'login_attempt' else name + '.wav'
 
         with wave.open(file_name, 'wb') as wf:
             p = pyaudio.PyAudio()
@@ -52,15 +81,15 @@ class MainWindow(QMainWindow):
             print('Done')
             stream.close()
             p.terminate()
-
-        self.show_message("Listo")
-
-
-    def show_message(self, text: str):
-        msg = QMessageBox()
-        msg.setText(text)
-        msg.exec()
         
+        return file_name
+
+
+    def show_message(self, text: str) -> None:
+        msg = QMessageBox() 
+        msg.setText(text) 
+        msg.exec()
+
 
 def main():
     app = QApplication(sys.argv)
@@ -71,3 +100,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
