@@ -1,13 +1,129 @@
-# The stuff
-So this is supposed to be a speech recognition software made from scratch withouth using stuff like `speechRecognition`, this is due Friday, 24.
+# Proyecto final de Procesamiento digital de señales
+El objetivo es crear un sistema de reconocimiento de palabras utilizando lo visto en el curso, aplicando cosas como muestreo, cuantización, filtros activos, entre otros.
 
-## So far
-* Made a working simple GUI for interaction
-* The GUI is able to record audio and store into a `.wav` file
-* The audio can be processed by python 
-* Implemented a low pass filter for the recorded audio to eliminate unwanted frequencies
+## La implementación
+Existen dos partes principales dentro de la implementación del proyecto:
+* La GUI
+* El programa principal 
 
-## TODO
-* Clean up the code in recognition
-* Check for a good cutoff frequency
-* Be able to actually recognize words or at least letters
+## La GUI
+La *GUI* se dedica a interacturar con el usuario, le permite definir su contraseña, así como intentar acceder a la aplicación, mediante diferentes ventanas se le indica al usuario como deberá realizar el inicio de sesión o la creación de su contraseña. Para la *GUI* se utilizan las siguientes tecnologías:
+
+* Python
+* PyQt6 - libreria para la creacion de interfaces gráficas
+* PyAudio - libreria para interactuar con los puertos de audio del sistema
+* sounddevice - libreria para evitar *warnings* innecesarios del sistema
+* sys - libreria para interactuar con los elementos del sistema
+* os - libreria para interactuar con los archivos del sistema operativo
+
+En dado caso de que no se haya definido una contraseña, la aplicación le hará saber al usuario dicho suceso, lo mismo si se han hecho más de 5 intentos. El código de la *GUI* es el siguiente
+
+```python
+import wave
+import pyaudio
+import sys
+import sounddevice
+from recognition import recognition
+from os import path
+from PyQt6.QtGui import *
+from PyQt6.QtWidgets import *
+from PyQt6.QtCore import *
+
+class MainWindow(QMainWindow):
+    
+    def __init__(self, *args, **kwargs):
+        super(MainWindow, self).__init__(*args, **kwargs)
+        self.setWindowTitle("Sistema de reconocimiento de palabras")
+        
+        layout = QGridLayout(None)
+        title = QLabel("Candado por voz")
+        
+        self.login = QPushButton("Acceder")
+        self.login.clicked.connect(self.login_clicked)
+        self.set_key = QPushButton("Definir contraseña")
+        self.set_key.clicked.connect(self.key_clicked)
+
+        layout.addWidget(title, 0, 0, 1, 2)
+        layout.addWidget(self.login, 1, 0)
+        layout.addWidget(self.set_key, 1, 1)
+        
+        self.widget = QWidget()
+        self.widget.setLayout(layout)
+        self.setCentralWidget(self.widget)
+        self.count = 1
+        
+        
+    def login_clicked(self) -> None:
+        self.show_message("Al presionar OK empezará la grabación")
+        file_name = self.record()
+        self.count += 1 
+        self.show_message("Listo")
+        
+        if path.isfile('./key.wav'):
+            if recognition(file_name, 'key.wav'):
+                self.show_message("Contraseña correcta")
+            else:
+                self.show_message(f"Contraseña incorrecta, te quedan {5 - self.count} intentos")
+                if (5 - self.count) == 0:
+                    self.show_message("Deberas esperar treinta segundos despues de presionar Ok para volver a intentarlo")
+                    self.login.setEnabled(False)
+                    QTimer.singleShot(30000, lambda: self.login.setDisabled(False))
+                    self.count = 0
+        else:
+            self.show_message("Por favor establece la contraseña primero")
+    
+
+    def key_clicked(self) -> None:
+        self.show_message("Al presionar OK empezará la grabación")
+        self.record('key')
+        self.show_message("Listo")
+    
+
+    def record(self, name='login_attempt') -> str:
+        CHUNK = 1024
+        FORMAT = pyaudio.paInt16
+        CHANNELS = 1 if sys.platform == 'darwin' else 2
+        RATE = 44100
+        RECORD_SECONDS = 5
+        file_name = name + str(self.count) + '.wav' if name == 'login_attempt' else name + '.wav'
+
+        with wave.open(file_name, 'wb') as wf:
+            p = pyaudio.PyAudio()
+            wf.setnchannels(CHANNELS)
+            wf.setsampwidth(p.get_sample_size(FORMAT))
+            wf.setframerate(RATE)
+            
+            stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True)
+
+            print("Recording...")
+            for _ in range(0, RATE // CHUNK * RECORD_SECONDS):
+                wf.writeframes(stream.read(CHUNK))
+
+            print('Done')
+            stream.close()
+            p.terminate()
+        
+        return file_name
+
+
+    def show_message(self, text: str) -> None:
+        msg = QMessageBox() 
+        msg.setText(text) 
+        msg.exec()
+
+
+def main():
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    app.exec()
+
+
+if __name__ == '__main__':
+    main()
+```
+
+## El programa principal
+El programa principal es el encargado de limpiar las entradas de audio, así como de comparar una con otra y decidir si se dará acceso o no a la aplicación, basado en esta respuesta, que es un `bool` se concederá acceso o no.
+
+Para limpiar las entradas de audio, se desarrolló un filtro *Buttherworth* pasabajas, con una frecuencia de corte de ***insertar frecuencia de corte aqui***, que son las funciones `read_wav` y `filter`, después, esta información es pasada a la función `recognition` en donde sucede la magia. 
