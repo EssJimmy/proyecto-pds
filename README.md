@@ -126,4 +126,4 @@ if __name__ == '__main__':
 ## El programa principal
 El programa principal es el encargado de limpiar las entradas de audio, así como de comparar una con otra y decidir si se dará acceso o no a la aplicación, basado en esta respuesta, que es un `bool` se concederá acceso o no.
 
-Para limpiar las entradas de audio, se desarrolló un filtro *Buttherworth* pasabajas, con una frecuencia de corte de ***insertar frecuencia de corte aqui***, que son las funciones `read_wav` y `filter`, después, esta información es pasada a la función `recognition` en donde sucede la magia. 
+Para limpiar las entradas de audio, se desarrolló un filtro *Butterworth* pasabajas, con una frecuencia de corte de ***insertar frecuencia de corte aqui***, que son las funciones `read_wav` y `filter`, después, esta información es pasada a la función `recognition` en donde sucede la magia. 
